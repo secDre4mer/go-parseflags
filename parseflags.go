@@ -81,6 +81,16 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 			if isDeprecated {
 				createdFlag.Deprecated = deprecationText
 			}
+			aliases, hasAliases := structField.Tag.Lookup("alias")
+			if hasAliases {
+				for _, alias := range strings.Split(aliases, ",") {
+					aliasFlag := flags.VarPF(variable, alias, "", "")
+					aliasFlag.Hidden = true
+					if field.Type() == reflect.TypeOf(false) {
+						aliasFlag.NoOptDefVal = "true"
+					}
+				}
+			}
 		}
 	}
 	return flags
