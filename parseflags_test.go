@@ -13,7 +13,7 @@ func ExampleCreateFlagset() {
 		B: []string{"defaultvalue"},
 	}
 
-	args := []string{"--alpha", "10", "--beta", "b", "--gamma"}
+	args := []string{"--alpha", "10", "--beta", "b", "--beta", "b2", "--gamma"}
 	flags := CreateFlagset(&testConfig)
 	flags.Parse(args)
 	fmt.Println(testConfig.A)
@@ -22,6 +22,6 @@ func ExampleCreateFlagset() {
 
 	//Output:
 	//10
-	//[b]
+	//[b b2]
 	//true
 }

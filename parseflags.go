@@ -144,6 +144,7 @@ func (g *generalPurposeVar) Set(value string) (err error) {
 		newTargetValue := reflect.ValueOf(convertedValue).Convert(reflect.TypeOf(g.Target).Elem())
 		reflect.Indirect(reflect.ValueOf(g.Target)).Set(newTargetValue)
 	}
+	g.changed = true
 	return
 }
 
