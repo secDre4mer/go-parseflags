@@ -149,6 +149,9 @@ func (g *generalPurposeVar) Set(value string) (err error) {
 }
 
 func (g *generalPurposeVar) String() string {
+	if stringer, isStringer := g.Target.(fmt.Stringer); isStringer {
+		return stringer.String()
+	}
 	if !g.isSlice() {
 		return fmt.Sprintf("%v", reflect.Indirect(reflect.ValueOf(g.Target)).Interface())
 	} else {
