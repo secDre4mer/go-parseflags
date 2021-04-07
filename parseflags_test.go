@@ -2,6 +2,7 @@ package parseflags
 
 import (
 	"fmt"
+	"strconv"
 )
 
 func ExampleCreateFlagset() {
@@ -24,4 +25,62 @@ func ExampleCreateFlagset() {
 	//10
 	//[b b2]
 	//true
+}
+
+type Convertible int
+
+func (c *Convertible) Set(val string) error {
+	ival, err := strconv.Atoi(val)
+	if err == nil {
+		*c = Convertible(ival)
+	}
+	return err
+}
+
+func ExampleConvertible() {
+	testConfig := struct {
+		A Convertible     `flag:"alpha" description:"an int value with custom converter"`
+		B []Convertible    `flag:"beta" description:"a slice of an int value with custom converter"`
+	}{
+		A: Convertible(1),
+	}
+
+	args := []string{"--alpha", "10", "--beta", "5"}
+	flags := CreateFlagset(&testConfig)
+	flags.Parse(args)
+	fmt.Println(testConfig.A)
+	fmt.Println(testConfig.B)
+
+	//Output:
+	//10
+	//[5]
+}
+
+type CustomConvertible int
+
+func ExampleConverter() {
+	testConfig := struct {
+		A CustomConvertible     `flag:"alpha" description:"an int value with custom converter"`
+		B []CustomConvertible    `flag:"beta" description:"a slice of an int value with custom converter"`
+	}{
+		A: CustomConvertible(1),
+	}
+
+	RegisterConverter(CustomConvertible(0), func(val string) (interface{}, error) {
+		ival, err := strconv.Atoi(val)
+		if err == nil {
+			return CustomConvertible(ival), nil
+		}
+		return nil, err
+	})
+
+	args := []string{"--alpha", "10", "--beta", "5"}
+	flags := CreateFlagset(&testConfig)
+	flags.Parse(args)
+	fmt.Println(testConfig.A)
+	fmt.Println(testConfig.B)
+
+	//Output:
+	//10
+	//[5]
 }

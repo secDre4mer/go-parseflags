@@ -187,16 +187,18 @@ func RegisterConverter(targetType interface{}, converter Converter) {
 }
 
 func makeVar(target interface{}) *generalPurposeVar {
-	targetType := reflect.TypeOf(target).Elem()
+	pointerType := reflect.TypeOf(target)
+	targetType := pointerType.Elem()
 	if targetType.Kind() == reflect.Slice {
 		targetType = targetType.Elem()
+		pointerType = reflect.PtrTo(targetType)
 	}
 	var converter Converter
-	if targetType.Implements(reflect.TypeOf((*StringParsable)(nil)).Elem()) {
+	if pointerType.Implements(reflect.TypeOf((*StringParsable)(nil)).Elem()) {
 		converter = func(val string) (interface{}, error) {
-			zeroVal := reflect.Zero(targetType)
+			zeroVal := reflect.New(targetType)
 			err := zeroVal.Interface().(StringParsable).Set(val)
-			return zeroVal, err
+			return zeroVal.Elem().Interface(), err
 		}
 	} else if registered, hasRegistered := gpVarConverters[targetType]; hasRegistered {
 		converter = registered
