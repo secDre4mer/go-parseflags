@@ -7,9 +7,9 @@ import (
 
 func ExampleCreateFlagset() {
 	testConfig := struct {
-		A int64     `flag:"alpha" description:"an int value"`
-		B []string  `flag:"beta" description:"some strings"`
-		C bool      `flag:"gamma" hidden:"true"`
+		A int64    `flag:"alpha" description:"an int value"`
+		B []string `flag:"beta" description:"some strings"`
+		C bool     `flag:"gamma" hidden:"true"`
 	}{
 		B: []string{"defaultvalue"},
 	}
@@ -39,8 +39,8 @@ func (c *Convertible) Set(val string) error {
 
 func ExampleConvertible() {
 	testConfig := struct {
-		A Convertible     `flag:"alpha" description:"an int value with custom converter"`
-		B []Convertible    `flag:"beta" description:"a slice of an int value with custom converter"`
+		A Convertible   `flag:"alpha" description:"an int value with custom converter"`
+		B []Convertible `flag:"beta" description:"a slice of an int value with custom converter"`
 	}{
 		A: Convertible(1),
 	}
@@ -60,8 +60,8 @@ type CustomConvertible int
 
 func ExampleConverter() {
 	testConfig := struct {
-		A CustomConvertible     `flag:"alpha" description:"an int value with custom converter"`
-		B []CustomConvertible    `flag:"beta" description:"a slice of an int value with custom converter"`
+		A CustomConvertible   `flag:"alpha" description:"an int value with custom converter"`
+		B []CustomConvertible `flag:"beta" description:"a slice of an int value with custom converter"`
 	}{
 		A: CustomConvertible(1),
 	}
@@ -83,4 +83,23 @@ func ExampleConverter() {
 	//Output:
 	//10
 	//[5]
+}
+
+func ExampleRecurseFlagset() {
+	testConfig := struct {
+		A                  int64 `flag:"alpha" description:"an int value"`
+		SubComponentConfig struct {
+			B []string `flag:"beta" description:"some strings"`
+		} `recurse:"true"`
+	}{}
+
+	args := []string{"--alpha", "10", "--beta", "b"}
+	flags := CreateFlagset(&testConfig)
+	flags.Parse(args)
+	fmt.Println(testConfig.A)
+	fmt.Println(testConfig.SubComponentConfig.B)
+
+	//Output:
+	//10
+	//[b]
 }

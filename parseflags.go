@@ -50,6 +50,15 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 	for i := 0; i < configType.NumField(); i++ {
 		structField := configType.Field(i)
 
+		_, recurse := structField.Tag.Lookup("recurse")
+		if recurse {
+			toRecurse := reflectConfig.Field(i).Addr().Interface()
+			if toRecurse != nil {
+				flags.AddFlagSet(b.Build(toRecurse))
+			}
+			continue
+		}
+
 		var name string
 		for _, tag := range b.NameTags {
 			tagValue, tagExists := structField.Tag.Lookup(tag)
