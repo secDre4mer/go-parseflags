@@ -183,17 +183,21 @@ func (g *generalPurposeVar) String() string {
 	}
 }
 
-func (g *generalPurposeVar) Type() string {
-	if named, isNamed := g.Target.(NamedType); isNamed {
+func Type(pointer interface{}) string {
+	if named, isNamed := pointer.(NamedType); isNamed {
 		return named.Type()
 	}
-	targetType := reflect.TypeOf(g.Target).Elem()
+	targetType := reflect.TypeOf(pointer).Elem()
 	var suffix string
 	if targetType.Kind() == reflect.Slice {
 		suffix = "Slice"
 		targetType = targetType.Elem()
 	}
 	return targetType.Name() + suffix
+}
+
+func (g *generalPurposeVar) Type() string {
+	return Type(g.Target)
 }
 
 type Converter func(string) (interface{}, error)
