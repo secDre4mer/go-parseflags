@@ -39,14 +39,13 @@ func CreateFlagset(config interface{}) *flag.FlagSet {
 	return NewBuilder().Build(config)
 }
 
-func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
+func (b *FlagsetBuilder) RecurseReflectively(config interface{}, callback func(name string, tag reflect.StructTag, value interface{})) {
 	reflectConfig := reflect.ValueOf(config)
 	if reflectConfig.Kind() != reflect.Ptr {
 		panic("Must pass pointer to struct containing configuration")
 	}
 	reflectConfig = reflectConfig.Elem()
 	configType := reflectConfig.Type()
-	var flags = flag.NewFlagSet("", flag.ContinueOnError)
 	for i := 0; i < configType.NumField(); i++ {
 		structField := configType.Field(i)
 
@@ -54,7 +53,7 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 		if recurse {
 			toRecurse := reflectConfig.Field(i).Addr().Interface()
 			if toRecurse != nil {
-				flags.AddFlagSet(b.Build(toRecurse))
+				b.RecurseReflectively(toRecurse, callback)
 			}
 			continue
 		}
@@ -71,37 +70,44 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 			if b.Filter != nil && !b.Filter.Filter(structField) {
 				continue
 			}
-
-			description := structField.Tag.Get("description")
-			shorthand := structField.Tag.Get("shorthand")
-
 			field := reflectConfig.Field(i)
+			callback(name, structField.Tag, field.Addr().Interface())
+		}
+	}
+	return
+}
 
-			var variable = makeVar(field.Addr().Interface())
-			createdFlag := flags.VarPF(variable, name, shorthand, description)
-			if field.Type() == reflect.TypeOf(false) {
-				createdFlag.NoOptDefVal = "true"
-			}
-			_, isHidden := structField.Tag.Lookup("hidden")
-			if isHidden {
-				createdFlag.Hidden = true
-			}
-			deprecationText, isDeprecated := structField.Tag.Lookup("deprecated")
-			if isDeprecated {
-				createdFlag.Deprecated = deprecationText
-			}
-			aliases, hasAliases := structField.Tag.Lookup("alias")
-			if hasAliases {
-				for _, alias := range strings.Split(aliases, ",") {
-					aliasFlag := flags.VarPF(variable, alias, "", "")
-					aliasFlag.Hidden = true
-					if field.Type() == reflect.TypeOf(false) {
-						aliasFlag.NoOptDefVal = "true"
-					}
+func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
+	var flags = flag.NewFlagSet("", flag.ContinueOnError)
+	callback := func(name string, tag reflect.StructTag, value interface{}) {
+		description := tag.Get("description")
+		shorthand := tag.Get("shorthand")
+
+		var variable = makeVar(value)
+		createdFlag := flags.VarPF(variable, name, shorthand, description)
+		if _, isBool := value.(*bool); isBool {
+			createdFlag.NoOptDefVal = "true"
+		}
+		_, isHidden := tag.Lookup("hidden")
+		if isHidden {
+			createdFlag.Hidden = true
+		}
+		deprecationText, isDeprecated := tag.Lookup("deprecated")
+		if isDeprecated {
+			createdFlag.Deprecated = deprecationText
+		}
+		aliases, hasAliases := tag.Lookup("alias")
+		if hasAliases {
+			for _, alias := range strings.Split(aliases, ",") {
+				aliasFlag := flags.VarPF(variable, alias, "", "")
+				aliasFlag.Hidden = true
+				if _, isBool := value.(*bool); isBool {
+					aliasFlag.NoOptDefVal = "true"
 				}
 			}
 		}
 	}
+	b.RecurseReflectively(config, callback)
 	return flags
 }
 
