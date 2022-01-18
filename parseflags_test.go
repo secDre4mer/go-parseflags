@@ -103,3 +103,20 @@ func ExampleRecurseFlagset() {
 	//10
 	//[b]
 }
+
+func ExampleNoOptDef() {
+	testConfig := struct {
+		A int64 `flag:"alpha" nooptdef:"1024"`
+		B int64 `flag:"beta"`
+	}{}
+
+	args := []string{"--alpha", "--beta"}
+	flags := CreateFlagset(&testConfig)
+	flags.Parse(args)
+	fmt.Println(testConfig.A)
+	fmt.Println(testConfig.B)
+
+	//Output:
+	//10
+	//1024
+}

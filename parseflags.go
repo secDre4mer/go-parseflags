@@ -85,9 +85,13 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 
 		var variable = makeVar(value)
 		createdFlag := flags.VarPF(variable, name, shorthand, description)
-		if _, isBool := value.(*bool); isBool {
-			createdFlag.NoOptDefVal = "true"
+		nooptdefval, hasnooptdefval := tag.Lookup("nooptdef")
+		if !hasnooptdefval {
+			if _, isBool := value.(*bool); isBool {
+				nooptdefval = "true"
+			}
 		}
+		createdFlag.NoOptDefVal = nooptdefval
 		_, isHidden := tag.Lookup("hidden")
 		if isHidden {
 			createdFlag.Hidden = true
@@ -101,9 +105,7 @@ func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 			for _, alias := range strings.Split(aliases, ",") {
 				aliasFlag := flags.VarPF(variable, alias, "", "")
 				aliasFlag.Hidden = true
-				if _, isBool := value.(*bool); isBool {
-					aliasFlag.NoOptDefVal = "true"
-				}
+				aliasFlag.NoOptDefVal = nooptdefval
 			}
 		}
 	}
