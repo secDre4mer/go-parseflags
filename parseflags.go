@@ -194,6 +194,9 @@ func Type(pointer interface{}) string {
 	if targetType.Kind() == reflect.Slice {
 		suffix = "Slice"
 		targetType = targetType.Elem()
+		if named, isNamed := reflect.Zero(targetType).Interface().(NamedType); isNamed {
+			return named.Type() + suffix
+		}
 	}
 	return targetType.Name() + suffix
 }
