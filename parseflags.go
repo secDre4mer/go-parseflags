@@ -15,13 +15,27 @@ type ElementFilter interface {
 }
 
 type FlagsetBuilder struct {
-	Filter   ElementFilter
-	NameTags []string
+	Filter         ElementFilter
+	NameTags       []string
+	DescriptionTag string
+	ShorthandTag   string
+	NoOptDefTag    string
+	AliasTag       string
+	DeprecatedTag  string
+	HiddenTag      string
+	RecurseTag     string
 }
 
 func NewBuilder() *FlagsetBuilder {
 	return &FlagsetBuilder{
-		NameTags: []string{"flag"},
+		NameTags:       []string{"flag"},
+		DescriptionTag: "description",
+		ShorthandTag:   "shorthand",
+		NoOptDefTag:    "nooptdef",
+		AliasTag:       "alias",
+		DeprecatedTag:  "deprecated",
+		HiddenTag:      "hidden",
+		RecurseTag:     "recurse",
 	}
 }
 
@@ -49,7 +63,7 @@ func (b *FlagsetBuilder) RecurseReflectively(config interface{}, callback func(n
 	for i := 0; i < configType.NumField(); i++ {
 		structField := configType.Field(i)
 
-		_, recurse := structField.Tag.Lookup("recurse")
+		_, recurse := structField.Tag.Lookup(b.RecurseTag)
 		if recurse {
 			toRecurse := reflectConfig.Field(i).Addr().Interface()
 			if toRecurse != nil {
@@ -80,27 +94,27 @@ func (b *FlagsetBuilder) RecurseReflectively(config interface{}, callback func(n
 func (b *FlagsetBuilder) Build(config interface{}) *flag.FlagSet {
 	var flags = flag.NewFlagSet("", flag.ContinueOnError)
 	callback := func(name string, tag reflect.StructTag, value interface{}) {
-		description := tag.Get("description")
-		shorthand := tag.Get("shorthand")
+		description := tag.Get(b.DescriptionTag)
+		shorthand := tag.Get(b.ShorthandTag)
 
 		var variable = makeVar(value)
 		createdFlag := flags.VarPF(variable, name, shorthand, description)
-		nooptdefval, hasnooptdefval := tag.Lookup("nooptdef")
+		nooptdefval, hasnooptdefval := tag.Lookup(b.NoOptDefTag)
 		if !hasnooptdefval {
 			if _, isBool := value.(*bool); isBool {
 				nooptdefval = "true"
 			}
 		}
 		createdFlag.NoOptDefVal = nooptdefval
-		_, isHidden := tag.Lookup("hidden")
+		_, isHidden := tag.Lookup(b.HiddenTag)
 		if isHidden {
 			createdFlag.Hidden = true
 		}
-		deprecationText, isDeprecated := tag.Lookup("deprecated")
+		deprecationText, isDeprecated := tag.Lookup(b.DeprecatedTag)
 		if isDeprecated {
 			createdFlag.Deprecated = deprecationText
 		}
-		aliases, hasAliases := tag.Lookup("alias")
+		aliases, hasAliases := tag.Lookup(b.AliasTag)
 		if hasAliases {
 			for _, alias := range strings.Split(aliases, ",") {
 				aliasFlag := flags.VarPF(variable, alias, "", "")
